@@ -2,7 +2,7 @@ The **cn** command line interface to CommonNumerics routines has been published 
 
 It belongs to the **[CommonCrypto library](https://opensource.apple.com/source/CommonCrypto/)**, but it has not been built/installed into macOS.
 
-You can **[install cn](https://github.com/JayBrown/cn-tap)** using **[Homebrew](https://brew.sh)** (recommended) with `brew tap JayBrown/cn && brew install cn`, or you can **manually make/build** with `make clean` and `make cn`.
+You can install **cn** using **[Homebrew](https://brew.sh)** (recommended) with `brew tap JayBrown/cn && brew install cn` ([tap repo with formula](https://github.com/JayBrown/homebrew-cn)), or you can **manually make/build** with `make clean` and `make cn`.
 
 ## Functionality (man page)
 ```
