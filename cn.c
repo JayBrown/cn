@@ -1,15 +1,15 @@
 /*
  * Copyright (c) 2011 Apple Inc. All Rights Reserved.
- * 
+ *
  * @APPLE_LICENSE_HEADER_START@
- * 
+ *
  * This file contains Original Code and/or Modifications of Original Code
  * as defined in and that are subject to the Apple Public Source License
  * Version 2.0 (the 'License'). You may not use this file except in
  * compliance with the License. Please obtain a copy of the License at
  * http://www.opensource.apple.com/apsl/ and read it before using this
  * file.
- * 
+ *
  * The Original Code and all software distributed under the License are
  * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
  * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
@@ -17,7 +17,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.
  * Please see the License for the specific language governing rights and
  * limitations under the License.
- * 
+ *
  * @APPLE_LICENSE_HEADER_END@
  */
 
@@ -33,8 +33,8 @@
 #include <libgen.h>
 #include <ctype.h>
 #include <AssertMacros.h>
-#include <CommonNumerics/CommonCRC.h>
-#include <CommonNumerics/CommonBaseXX.h>
+#include "CommonCRC.h"
+#include "CommonBaseXX.h"
 
 #define CN_NAME "cn"
 #define ENCODE_DEFAULT_WIDTH 64
@@ -96,7 +96,7 @@ typedef struct _cnCmd
 {
     const char * name;
     cmdOp op;
-    const char * options; 
+    const char * options;
     const char * description;
     const char * usage;
     uint32_t    algDefault;
@@ -149,7 +149,7 @@ static cnCmdPtr getcmd(const char * str)
 {
     if (!str)
         return NULL;
-    
+
     int num = sizeof(cmdMap)/sizeof(cnCmd);
     size_t cmdlen = strlen(str);
     int count = 0;
@@ -160,7 +160,7 @@ static cnCmdPtr getcmd(const char * str)
             foundCmd = &cmdMap[x];
         }
     }
-    
+
     if (count > 1) {
         fprintf(stderr, "error: %s is ambiguous found %d matches\n", str, count);
         return NULL;
@@ -175,7 +175,7 @@ static uint32_t getalg(cnContextPtr context, const char * name)
         return 0;
     const cnItem * algMap = NULL;
     int num;
-    
+
     switch (context->cmd->op) {
         case cmdOpCRC:
             algMap = crcMap;
@@ -189,7 +189,7 @@ static uint32_t getalg(cnContextPtr context, const char * name)
         default:
             return 0;
     }
-            
+
     size_t nlen = strlen(name);
     uint32_t alg = 0;
     for (int x = 0; x < num; x++) {
@@ -198,7 +198,7 @@ static uint32_t getalg(cnContextPtr context, const char * name)
             break;
         }
     }
-    
+
     return alg;
 }
 
@@ -208,7 +208,7 @@ static void usage(cnContextPtr context)
 {
     if (!context)
         return;
-    
+
     if (context->cmd == NULL) {
         fprintf(stderr, "usage: cn [command] [opt ...]\n\n");
         fprintf(stderr, "'cn command -h' for more info\n\n");
@@ -232,14 +232,14 @@ static void usage(cnContextPtr context)
             pos++;
         }
         *cur = '\0';
-        
+
         if (cmd->usage) {
             fprintf(stderr, "usage: %s [-%s] %s\n", cmd->name, optBuf, cmd->usage);
         } else {
             fprintf(stderr, "usage: %s [-%s]\n", cmd->name, optBuf);
         }
         free(optBuf);
-        
+
         const char * ch = cmd->options;
         while (*ch != '\0') {
             switch (*ch) {
@@ -263,7 +263,7 @@ static void usage(cnContextPtr context)
             }
             ch++;
         }
-        
+
         switch (cmd->op) {
             case cmdOpCRC:
                 {
@@ -288,14 +288,14 @@ static void usage(cnContextPtr context)
                 break;
         }
     }
-    
+
 }
 
 static int getEnvInt(const char * str)
 {
     if (!str)
         return 0;
-    
+
     const char * env = getenv(str);
     return env ? atoi(env) : 0;
 }
@@ -303,16 +303,16 @@ static int getEnvInt(const char * str)
 static uint32_t parseAlg(cnContextPtr context, const char * str)
 {
     uint32_t alg = 0;
-    
+
     if (!str)
         return 0;
-    
+
     alg = atoi(str);
     if (!alg)
         alg = getalg(context, str);
     if (!alg)
         fprintf(stderr, "Algorithm not found %s\n", str);
-    
+
     return alg;
 }
 
@@ -328,23 +328,23 @@ static bool parseArgs(int argc, const char * argv[], cnContextPtr context)
         cmd = NULL;
     }
     require_quiet(cmd || argc > 1, done);
-    
+
     context->cmd = getcmd(cmd ? cmd : argv[1]);
     require_quiet(context->cmd != NULL, done);
-    
+
     if (!cmd) {
         argc -= 1;
         argv += 1;
     }
 
     context->alg = parseAlg(context, getenv("CN_ALG"));
-    
+
     if (!context->alg) {
         context->alg = context->cmd->algDefault;
     }
-    
+
     context->out_file = fdopen(STDOUT_FILENO, "a");
-    
+
     while ((ch = getopt(argc, (char**)argv,context->cmd->options)) != -1) {
         switch (ch) {
             case 'a':
@@ -370,16 +370,16 @@ static bool parseArgs(int argc, const char * argv[], cnContextPtr context)
                 break;
         }
     }
-    
+
     envInt = getEnvInt("CN_READ_SIZE");
     context->pageSize = envInt ? envInt : getpagesize();
-    
+
     envInt = getEnvInt("CN_WIDTH");
     context->width = envInt ? envInt : ENCODE_DEFAULT_WIDTH;
-    
+
     argc -= optind;
     argv += optind;
-    
+
     if (argc > 0) {
         context->filesCount = argc;
         context->files = calloc(1u,argc*sizeof(char*)+1);
@@ -387,9 +387,9 @@ static bool parseArgs(int argc, const char * argv[], cnContextPtr context)
             context->files[i] = argv[i];
         }
     }
-    
+
     result = true;
-    
+
 done:
     if (!result) {
         usage(context);
@@ -415,7 +415,7 @@ static CNStatus crcOp(cnContextPtr context)
     CNStatus status = kCNSuccess;
     CNCRCRef crcRef = NULL;
     uint64_t crc = 0;
-    
+
     if(context->dumpTable) {
         status = CNCRCDumpTable(context->alg);
         require_noerr(status, done);
@@ -424,26 +424,26 @@ static CNStatus crcOp(cnContextPtr context)
         size_t sLen = strlen(context->string);
         status = CNCRC(context->alg, context->string, sLen, &crc);
         require_noerr(status, done);
-        
+
         context->totalBytes = sLen;
     } else {
         status = CNCRCInit(context->alg, &crcRef);
         require_noerr(status, done);
-        
+
         char buf[context->pageSize];
         size_t nr;
-        
+
         while ((nr = read(context->fd, buf, sizeof(buf))) > 0) {
             status = CNCRCUpdate(crcRef, buf, nr);
             require_noerr(status, done);
-            
+
             context->totalBytes += nr;
         }
-        
+
         status = CNCRCFinal(crcRef, &crc);
         require_noerr(status, done);
     }
-    
+
     pcrc(context, crc);
 
 done:
@@ -468,7 +468,7 @@ static void pbase(cnContextPtr context, CNEncodingDirection direction, uint8_t *
                 }
             }
             break;
-        
+
         case kCNDecode:
             fwrite(buf, buf_len, 1, context->out_file);
             fflush(context->out_file);
@@ -481,7 +481,7 @@ static void pbase(cnContextPtr context, CNEncodingDirection direction, uint8_t *
 static void _getBlockReadSize(cnContextPtr context, size_t * readSize, size_t * encodeSize)
 {
     size_t encode, in, out;
-    
+
     CNEncoderBlocksize(context->alg, &in, &out);
 
     encode = (context->pageSize / in) * out;
@@ -513,19 +513,19 @@ static CNStatus basexxOp(cnContextPtr context)
     uint8_t * sanitizedBuf = NULL;
     size_t encodedSize = 0;
     CNEncodingDirection direction = context->cmd->op == cmdOpEncode ? kCNEncode : kCNDecode;
-        
+
     if (context->string) {
         size_t sLen = strlen(context->string);
         encodedSize = CNEncoderGetOutputLengthFromEncoding(context->alg, direction, sLen);
-        
+
         encodeBuf = calloc(1u, encodedSize);
         require(encodeBuf != NULL, done);
-        
+
         CNEncode(context->alg, direction, context->string, sLen, encodeBuf, &encodedSize);
         require_noerr_action(status, done, status = kCNDecodeError);
-        
+
         pbase(context, direction, encodeBuf, encodedSize);
-        
+
         context->totalBytes = sLen;
     } else {
         uint8_t readBuf[context->pageSize];
@@ -535,20 +535,20 @@ static CNStatus basexxOp(cnContextPtr context)
 
         status = CNEncoderCreate(context->alg, direction, &encoder);
         require_noerr_action(status, done, status = kCNDecodeError);
-        
+
         size_t readBufSize = context->pageSize, expectedSize = 0;
         if (direction == kCNEncode) {
             _getBlockReadSize(context, &readBufSize, &expectedSize); // align reads to context->width
             assert(readBufSize <= (size_t) context->pageSize);
         }
-        
+
         encodeLen = CNEncoderGetOutputLength(encoder, readBufSize);
         encodeBuf = calloc(1u, encodeLen);
         require(encodeBuf != NULL, done);
-        
+
         while ((bytesRead = read(context->fd, readBuf, readBufSize)) > 0) {
             encodedSize = encodeLen;
-            
+
             if (direction == kCNDecode) {
                 if (!sanitizedBuf) {
                     sanitizedBuf = calloc(1u, context->pageSize);
@@ -556,27 +556,27 @@ static CNStatus basexxOp(cnContextPtr context)
                 size_t sanitizedSize = 0;
                 _sanitizeBuf(readBuf, bytesRead, sanitizedBuf, &sanitizedSize);
                 status = CNEncoderUpdate(encoder, sanitizedBuf, sanitizedSize, encodeBuf, &encodedSize);
-                expectedSize = encodedSize; 
+                expectedSize = encodedSize;
             } else {
                 status = CNEncoderUpdate(encoder, readBuf, bytesRead, encodeBuf, &encodedSize);
             }
             require_noerr_action(status, done, status = kCNDecodeError);
-            
+
             // during encode only print if we got the full expected encode size (we might need to add padding)
             // during decode print all decoded bytes
             if (encodedSize == expectedSize) {
                 pbase(context, direction, encodeBuf, encodedSize);
             }
-            
+
             context->totalBytes += bytesRead;
         }
-        
+
         pos = encodedSize;
         encodedSize = encodeLen - pos;
-        
+
         status = CNEncoderFinal(encoder, &encodeBuf[pos], &encodedSize);
         require_noerr_action(status, done, status = kCNDecodeError);
-        
+
         // If we had to add padding or didn't print the full buffer from above do so now
         if (direction == kCNEncode && (encodedSize || pos < expectedSize)) {
             size_t left = pos < expectedSize ?  pos + encodedSize : encodedSize;
@@ -584,12 +584,12 @@ static CNStatus basexxOp(cnContextPtr context)
             pbase(context, direction, &encodeBuf[pos < expectedSize ? 0 : pos], left);
         }
     }
-    
+
     PRINT("\n%llu", context->totalBytes);
     if (context->file)
         PRINT(" %s", context->file);
     PRINT("\n");
-    
+
 done:
     if (encoder) {
         CNEncoderRelease(&encoder);
@@ -600,7 +600,7 @@ done:
     if (sanitizedBuf) {
         free(sanitizedBuf);
     }
-    
+
     return status;
 }
 
@@ -611,7 +611,7 @@ static void cnContextFree(cnContextPtr context) {
     if (context->out_file) {
         fclose(context->out_file);
     }
-    
+
     free(context);
 }
 
@@ -621,11 +621,11 @@ int main(int argc, const char * argv[])
 {
     int rc = kCNSuccess;
     op_f op = NULL;
-    
+
     cnContextPtr context = calloc(1u, sizeof(cnContext));
-    
+
     context->fd = STDIN_FILENO;
-    
+
     require_action_quiet(parseArgs(argc, argv, context) == true, done, rc = kCNParamError);
 
     switch (context->cmd->op) {
@@ -639,16 +639,16 @@ int main(int argc, const char * argv[])
         default:
             break;
     }
-    
+
     require_action(op != NULL, done, rc = kCNParamError);
 
     const char ** pos = context->files;
     do {
         context->totalBytes = 0;
-        
+
         if (!context->string && pos) {
             context->file = *pos++;
-            
+
             if ((context->fd = open(context->file, O_RDONLY, 0)) < 0) {
                 fprintf(stderr, "failed to open %s\n", context->file);
                 rc = kCNFailure;
@@ -659,9 +659,9 @@ int main(int argc, const char * argv[])
             rc = kCNFailure;
         }
         close(context->fd);
-        
+
     } while (!context->string && pos && *pos);
-    
+
 
 done:
     cnContextFree(context);
